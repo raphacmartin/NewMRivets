@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NewM Rivets</title>
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container" id="app">
+    <h1>NewM Rivets JS</h1>
+    <div class="row">
+        <div class="col">
+            <form rv-on-submit="controller.enviar" class="card">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="txNome">Nome</label>
+                        <input id="txNome" type="text" class="form-control" rv-value="model.nome">
+                    </div>
+                    <div class="form-group">
+                        <label for="txCpf">CPF</label>
+                        <input id="txCpf" type="text" class="form-control" rv-value="model.cpf">
+                    </div>
+                    <div class="form-group">
+                        <label for="txDataNascimento">Data de Nascimento</label>
+                        <input id="txDataNascimento" type="text" class="form-control" rv-value="model.data_nascimento">
+                    </div>
+                    <p class="text-danger" rv-show="formulario_eh_valido | not">Preencha os dados corretamente</p>
+                    <button class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+        <div class="col">
+            <table class="table">
+                <thead>
+                <th>Nome</th>
+                <th>CPF</th>
+                <th>Data Nasc.</th>
+                <th>Ações</th>
+                </thead>
+                <tbody>
+                <tr rv-each-cliente="clientes">
+                    <td>{ cliente.nome }</td>
+                    <td>{ cliente.cpf }</td>
+                    <td>{ cliente.data_nascimento }</td>
+                    <td>
+                        <button rv-on-click="controller.editar | args %cliente%" class="btn btn-primary">Editar</button>
+                        <button rv-on-click="controller.excluir | args %cliente%" class="btn btn-danger">Excluir
+                        </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="assets/js/rivets.bundled.min.js"></script>
+<script src="node_modules/jquery/dist/jquery.min.js"></script>
+<script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="node_modules/jquery-mask-plugin/dist/jquery.mask.min.js"></script>
+<script>
+    let esta_editando = false;
+    let editando_index;
+    const data        = {
+        titulo:               'teste',
+        model:                {
+            nome:            '',
+            cpf:             '',
+            data_nascimento: ''
+        },
+        controller:           {
+            enviar(event) {
+                event.preventDefault();
+                data.formulario_eh_valido = formularioEhValido();
+                if (data.formulario_eh_valido) {
+                    if (!esta_editando) {
+                        add();
+                    } else {
+                        update(data.model, editando_index);
+                    }
+                    limpaFormulario();
+                } else {
+                    alert('Preencha o formulário corretamente');
+                }
+            },
+            editar(event, scope, index) {
+                esta_editando  = true;
+                editando_index = index;
+                data.model     = deepClone(data.clientes[index])
+            },
+            excluir(event, scope, index) {
+                limpaFormulario();
+                data.clientes.splice(index, 1);
+            },
+        },
+        formulario_eh_valido: true,
+        clientes:             []
+    };
+
+    function formularioEhValido() {
+        return data.model.nome && data.model.cpf.length === 14 && data.model.data_nascimento.length === 10;
+    }
+
+    function limpaFormulario() {
+        data.model    = deepClone({
+            nome:            '',
+            cpf:             '',
+            data_nascimento: ''
+        });
+        esta_editando = false;
+    }
+
+    function deepClone(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    }
+
+    function add() {
+        data.clientes.push(deepClone(data.model));
+    }
+
+    function update(cliente, index) {
+        Object.assign(data.clientes[index], cliente);
+    }
+
+    rivets.formatters.args = function (fn, ...args) {
+        return function (...deepArgs) {
+            let applyArgs = deepArgs.concat(args);
+            return fn.apply(this, applyArgs);
+        };
+    };
+
+    rivets.formatters.not = function (value) {
+        return !value;
+    };
+
+    rivets.bind($('#app'), data);
+
+    $('#txDataNascimento').mask('00/00/0000');
+    $('#txCpf').mask('000.000.000-00', {reverse: true});
+</script>
+</body>
+</html>
